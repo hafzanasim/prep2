@@ -2,4 +2,4 @@ streamlit
 pandas
 plotly
 google-generativeai
-sqlite3  # optional
+plotly.express
