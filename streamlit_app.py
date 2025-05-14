@@ -6,7 +6,6 @@ from data_retrieval import get_snowflake_data
 from text_analysis import extract_findings, configure_gemini
 from data_storage import store_data_sql, load_data_sql, init_db, reset_db
 import sqlite3
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 st.set_page_config(
     page_title="Radiology Findings Dashboard",
