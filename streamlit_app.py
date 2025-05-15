@@ -6,6 +6,7 @@ from data_retrieval import get_snowflake_data
 from text_analysis import extract_findings, configure_gemini
 from data_storage import store_data_sql, load_data_sql, init_db, reset_db
 import sqlite3
+import datetime
 
 st.set_page_config(
     page_title="Radiology Findings Dashboard",
@@ -141,8 +142,13 @@ with col1:
 
 with col2:
     df_display['timestamp'] = pd.to_datetime(df_display['timestamp'])
-    min_date = df_display['timestamp'].min().date()
-    max_date = df_display['timestamp'].max().date()
+    if df_display['timestamp'].dropna().empty:
+        today = datetime.date.today()
+        min_date = max_date = today
+    else:
+        min_date = df_display['timestamp'].min().date()
+        max_date = df_display['timestamp'].max().date()
+
     date_range = st.date_input("Date Range", value=(min_date, max_date), min_value=min_date, max_value=max_date)
 
 with col3:
