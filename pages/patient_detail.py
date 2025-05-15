@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 from data_retrieval import get_snowflake_data
 from data_storage import load_data_sql
+import warnings
+
+# Suppress SQLAlchemy warning (if needed)
+warnings.filterwarnings('ignore', category=UserWarning, message='pandas only supports SQLAlchemy connectable')
 
 # ——— Page config & title ———
 st.set_page_config(page_title="Patient Report Detail", layout="wide")
@@ -58,8 +62,8 @@ def debug_fetch_rad_rows(empi_id: str) -> pd.DataFrame:
         warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='INFORMATION_SCHEMA',
         query=query
     )
-    # normalize for client-side matching
-    df['TIMESTAMP'] = pd.to_datetime(df['TIMESTAMP']).dt.floor('S')  # Round to nearest second
+    # Normalize timestamps for comparison by removing milliseconds and timezone info
+    df['TIMESTAMP'] = pd.to_datetime(df['TIMESTAMP']).dt.floor('s')  # Use 's' instead of 'S'
     df['TIMESTAMP_naive'] = df['TIMESTAMP'].dt.tz_localize(None)
     return df
 
@@ -78,7 +82,7 @@ def debug_fetch_clin_rows(empi_id: str) -> pd.DataFrame:
         warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='INFORMATION_SCHEMA',
         query=query
     )
-    df['TIMESTAMP'] = pd.to_datetime(df['TIMESTAMP']).dt.floor('S')  # Round to nearest second
+    df['TIMESTAMP'] = pd.to_datetime(df['TIMESTAMP']).dt.floor('s')  # Use 's' instead of 'S'
     df['TIMESTAMP_naive'] = df['TIMESTAMP'].dt.tz_localize(None)
     return df
 
@@ -86,7 +90,7 @@ def debug_fetch_clin_rows(empi_id: str) -> pd.DataFrame:
 rad_df = debug_fetch_rad_rows(patient_id)
 
 # Round the selected timestamp to the nearest second for a more reliable comparison
-selected_timestamp_normalized = selected_timestamp.floor('S')
+selected_timestamp_normalized = selected_timestamp.floor('s')
 
 matched = rad_df[rad_df['TIMESTAMP_naive'] == selected_timestamp_normalized]
 if not matched.empty:
