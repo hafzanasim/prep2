@@ -278,13 +278,22 @@ with col1:
     selected_empi = st.selectbox("Select EMPI ID", empi_ids)
 
 with col2:
-    if df_display['timestamp'].notna().any():
-        min_date = df_display['timestamp'].min().date()
-        max_date = df_display['timestamp'].max().date()
-        date_range = st.date_input("Date Range", (min_date, max_date), min_value=min_date, max_value=max_date)
-    else:
-        st.warning("⚠️ No valid timestamps found for filtering.")
+    try:
+        # Ensure timestamps are datetime
+        df_display['timestamp'] = pd.to_datetime(df_display['timestamp'], errors="coerce")
+        valid_timestamps = df_display['timestamp'].dropna()
+
+        if not valid_timestamps.empty:
+            min_date = valid_timestamps.min().date()
+            max_date = valid_timestamps.max().date()
+            date_range = st.date_input("Date Range", (min_date, max_date), min_value=min_date, max_value=max_date)
+        else:
+            st.warning("⚠️ No valid timestamps found for filtering.")
+            date_range = None
+    except Exception as e:
+        st.error(f"⚠️ Error parsing date range: {e}")
         date_range = None
+
 
 with col3:
     selected_critical = st.selectbox("Critical Findings", ["All", "Yes", "No"])
