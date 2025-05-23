@@ -125,6 +125,18 @@ add_custom_css()
 init_db()
 configure_gemini(api_key=os.getenv("OPENAI_API_KEY"))
 
+load_dotenv()
+
+# Load credentials from .env
+SNOWFLAKE_CREDS = {
+    "user": os.getenv("SNOWFLAKE_USER"),
+    "password": os.getenv("SNOWFLAKE_PASSWORD"),
+    "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+    "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
+    "database": os.getenv("SNOWFLAKE_DATABASE"),
+    "schema": os.getenv("SNOWFLAKE_SCHEMA"),
+}
+
 
 # Sidebar dev tools
 if st.sidebar.button("Reset DB"):
