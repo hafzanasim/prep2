@@ -7,10 +7,9 @@ import os
 # Load .env file
 load_dotenv()
 
-def get_snowflake_data(*, user, password, account, warehouse, database, schema, query):
+def get_snowflake_data(query: str):
     """
-    Connects to Snowflake and retrieves data.
-    Returns an empty DataFrame if connection fails or no data is found.
+    Connects to Snowflake using environment variables and executes the given query.
     """
     try:
         # Connect using .env credentials
@@ -22,24 +21,14 @@ def get_snowflake_data(*, user, password, account, warehouse, database, schema, 
             database=os.getenv("SNOWFLAKE_DATABASE"),
             schema=os.getenv("SNOWFLAKE_SCHEMA")
         )
-        
+
         # Fetch data
         df = pd.read_sql(query, conn)
         
         # Close connection
         conn.close()
         
-        # Return the DataFrame (even if empty, it will have correct column structure)
         return df
-        
     except Exception as e:
         print(f"Error retrieving data from Snowflake: {e}")
-        
-        # Try to determine expected columns from the query
-        if "radio_reports" in query.lower():
-            return pd.DataFrame(columns=['EMPI_ID', 'RADIO_REPORT_TEXT', 'TIMESTAMP'])
-        elif "clinical_reports" in query.lower():
-            return pd.DataFrame(columns=['EMPI_ID', 'CLINICAL_REPORT_TEXT', 'TIMESTAMP'])
-        else:
-            # Return completely empty DataFrame as fallback
-            return pd.DataFrame()
+        return None
