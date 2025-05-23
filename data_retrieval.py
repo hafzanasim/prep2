@@ -10,6 +10,7 @@ load_dotenv()
 def get_snowflake_data(*, user, password, account, warehouse, database, schema, query):
     """
     Connects to Snowflake and retrieves data.
+    Returns an empty DataFrame if connection fails or no data is found.
     """
     try:
         # Connect using .env credentials
@@ -21,14 +22,21 @@ def get_snowflake_data(*, user, password, account, warehouse, database, schema, 
             database=os.getenv("SNOWFLAKE_DATABASE"),
             schema=os.getenv("SNOWFLAKE_SCHEMA")
         )
-
+        
         # Fetch data
         df = pd.read_sql(query, conn)
         
         # Close connection
         conn.close()
         
+        # Return empty DataFrame if no data found
+        if df is None or df.empty:
+            print(f"No data returned from query: {query}")
+            return pd.DataFrame()
+            
         return df
+        
     except Exception as e:
         print(f"Error retrieving data from Snowflake: {e}")
-        return None
+        # Return empty DataFrame instead of None
+        return pd.DataFrame()
