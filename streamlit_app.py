@@ -278,21 +278,29 @@ with col1:
     selected_empi = st.selectbox("Select EMPI ID", empi_ids)
 
 with col2:
-    try:
-        # Ensure timestamps are datetime
-        df_display['timestamp'] = pd.to_datetime(df_display['timestamp'], errors="coerce")
-        valid_timestamps = df_display['timestamp'].dropna()
+    df_display['timestamp'] = pd.to_datetime(df_display['timestamp'], errors="coerce")
+    valid_timestamps = df_display['timestamp'].dropna()
 
-        if not valid_timestamps.empty:
-            min_date = valid_timestamps.min().date()
-            max_date = valid_timestamps.max().date()
-            date_range = st.date_input("Date Range", (min_date, max_date), min_value=min_date, max_value=max_date)
-        else:
-            st.warning("⚠️ No valid timestamps found for filtering.")
-            date_range = None
+    if not valid_timestamps.empty:
+        min_date = valid_timestamps.min().date()
+        max_date = valid_timestamps.max().date()
+    else:
+        # Use hardcoded safe fallback dates
+        import datetime
+        min_date = datetime.date(2023, 1, 1)
+        max_date = datetime.date.today()
+
+    try:
+        date_range = st.date_input(
+            "Date Range",
+            (min_date, max_date),
+            min_value=min_date,
+            max_value=max_date
+        )
     except Exception as e:
-        st.error(f"⚠️ Error parsing date range: {e}")
+        st.error(f"⚠️ Unable to render date selector: {e}")
         date_range = None
+
 
 
 with col3:
