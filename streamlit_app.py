@@ -33,8 +33,9 @@ st.markdown("""
     border-radius: 8px;
 }
 .dashboard-title {
-    font-size: 2rem;
+    font-size: 2.15rem;
     font-weight: bold;
+    font-family: "Times New Roman", Times, serif;
 }
 </style>
 
