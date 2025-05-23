@@ -1,3 +1,4 @@
+#streamlit_app.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -7,10 +8,6 @@ from data_storage import store_data_sql, load_data_sql, init_db, reset_db, retry
 import sqlite3
 import datetime
 import io
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
 
 st.set_page_config(
     page_title="Radiology Findings Dashboard",
@@ -111,7 +108,7 @@ def add_custom_css():
 
 add_custom_css()
 init_db()
-configure_gemini(api_key=os.getenv("OPENAI_API_KEY"))
+configure_gemini(api_key="AIzaSyAZ5BSEUTGEOrKeX2AIUdD-CIDuH5lTB1U")
 
 # Sidebar dev tools
 if st.sidebar.button("Reset DB"):
