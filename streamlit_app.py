@@ -15,6 +15,35 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+st.markdown("""
+<style>
+.dashboard-banner {
+    background-color: #006a50;
+    color: white;
+    padding: 1rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1.8rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.dashboard-logo {
+    height: 100px;
+    border-radius: 8px;
+}
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: bold;
+}
+</style>
+
+<div class="dashboard-banner">
+    <img src="https://floridamedspace.com/wp-content/uploads/2024/05/baptist-health-logo-760x320-1-705x297.png" class="dashboard-logo" alt="Logo">
+    <div class="dashboard-title">Radiology & Clinical Findings Dashboard</div>
+</div>
+""", unsafe_allow_html=True)
+
 
 def risk_badge(level):
     color = {

@@ -36,7 +36,7 @@ body[data-theme="light"] .report-text {
     border-color: #ccc;
 }
 .banner {
-    background-color: #0b6e4f;
+    background-color: #006a50;
     color: white;
     padding: 1.2rem 2rem;
     border-radius: 10px;
