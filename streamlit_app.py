@@ -14,13 +14,22 @@ import os
 # Load environment variables
 load_dotenv()
 
+# Load credentials into a dictionary for reuse
+SNOWFLAKE_CREDS = {
+    "user": os.getenv("SNOWFLAKE_USER"),
+    "password": os.getenv("SNOWFLAKE_PASSWORD"),
+    "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+    "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
+    "database": os.getenv("SNOWFLAKE_DATABASE"),
+    "schema": os.getenv("SNOWFLAKE_SCHEMA"),
+}
+
 st.set_page_config(
     page_title="Radiology Findings Dashboard",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
 st.markdown("""
 <style>
 .dashboard-banner {
@@ -90,8 +99,8 @@ def add_custom_css():
         text-align: center;
         color: white;
         font-weight: bold;
-        font-size: 1.5rem;
-        gap: 0.5rem;
+        font-size: 1.5rem;  /* Same font size for title and number */
+        gap: 0.5rem;         /* Space between title and number */
     }
 
     .critical { background-color: #dc3545; }
@@ -111,6 +120,7 @@ def add_custom_css():
     }
     </style>""", unsafe_allow_html=True)
 
+
 add_custom_css()
 init_db()
 configure_gemini(api_key=os.getenv("OPENAI_API_KEY"))
@@ -122,22 +132,29 @@ if st.sidebar.button("Reset DB"):
     st.stop()
 
 def get_radio_for_retry(empi_id, timestamp):
-    return get_snowflake_data(f"""
-        SELECT RADIO_REPORT_TEXT
-        FROM radio_reports
-        WHERE EMPI_ID = '{empi_id}'
-          AND TO_CHAR(TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') = '{timestamp}'
-    """)
+    return get_snowflake_data(
+        **SNOWFLAKE_CREDS,
+        query=f"""
+            SELECT RADIO_REPORT_TEXT
+            FROM radio_reports
+            WHERE EMPI_ID = '{empi_id}'
+              AND TO_CHAR(TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') = '{timestamp}'
+        """
+    )
 
 def get_clinical_for_retry(empi_id, timestamp):
-    df = get_snowflake_data(f"""
-        SELECT CLINICAL_REPORT_TEXT
-        FROM clinical_reports
-        WHERE EMPI_ID = '{empi_id}'
-        ORDER BY ABS(strftime('%s', '{timestamp}') - strftime('%s', TIMESTAMP)) ASC
-        LIMIT 1
-    """)
+    df = get_snowflake_data(
+        **SNOWFLAKE_CREDS,
+        query=f"""
+            SELECT CLINICAL_REPORT_TEXT
+            FROM clinical_reports
+            WHERE EMPI_ID = '{empi_id}'
+            ORDER BY ABS(strftime('%s', '{timestamp}') - strftime('%s', TIMESTAMP)) ASC
+            LIMIT 1
+        """
+    )
     return df if isinstance(df, pd.DataFrame) else pd.DataFrame()
+
 
 if st.sidebar.button("Re-run failed LLM findings"):
     updated = retry_failed_extractions(
@@ -151,18 +168,20 @@ if st.sidebar.button("Re-run failed LLM findings"):
     else:
         st.sidebar.info("No failed records to reprocess.")
 
+
 @st.cache_data
 def load_radiology_data():
-    return get_snowflake_data("""
-        SELECT EMPI_ID, RADIO_REPORT_TEXT, TIMESTAMP FROM radio_reports
-    """)
+    return get_snowflake_data(
+        **SNOWFLAKE_CREDS,
+        query="SELECT EMPI_ID, RADIO_REPORT_TEXT, TIMESTAMP FROM radio_reports"
+    )
 
 @st.cache_data
 def load_clinical_data():
-    return get_snowflake_data("""
-        SELECT EMPI_ID, CLINICAL_REPORT_TEXT, TIMESTAMP FROM clinical_reports
-    """)
-
+    return get_snowflake_data(
+        **SNOWFLAKE_CREDS,
+        query="SELECT EMPI_ID, CLINICAL_REPORT_TEXT, TIMESTAMP FROM clinical_reports"
+    )
 
 # Helper to normalize timestamps
 def canonical_ts(series: pd.Series) -> pd.Series:
@@ -203,35 +222,8 @@ if 'processed' not in st.session_state:
     radio_df = load_radiology_data()
     clinical_df = load_clinical_data()
 
-    # Debug: Check column names
-    st.write("Radio DataFrame columns:", radio_df.columns.tolist())
-    st.write("Clinical DataFrame columns:", clinical_df.columns.tolist())
-
-    # Find timestamp column (case-insensitive)
-    radio_timestamp_col = None
-    clinical_timestamp_col = None
-    
-    for col in radio_df.columns:
-        if 'timestamp' in col.lower():
-            radio_timestamp_col = col
-            break
-    
-    for col in clinical_df.columns:
-        if 'timestamp' in col.lower():
-            clinical_timestamp_col = col
-            break
-    
-    if radio_timestamp_col is None:
-        st.error(f"No timestamp column found in radio data. Available columns: {radio_df.columns.tolist()}")
-        st.stop()
-    
-    if clinical_timestamp_col is None:
-        st.error(f"No timestamp column found in clinical data. Available columns: {clinical_df.columns.tolist()}")
-        st.stop()
-
-    # Use the found column names
-    radio_df["timestamp"] = canonical_ts(radio_df[radio_timestamp_col])
-    clinical_df["timestamp"] = canonical_ts(clinical_df[clinical_timestamp_col])
+    radio_df["timestamp"] = canonical_ts(radio_df["TIMESTAMP"])
+    clinical_df["timestamp"] = canonical_ts(clinical_df["TIMESTAMP"])
     radio_df["empi_id"] = radio_df["EMPI_ID"]
     clinical_df["empi_id"] = clinical_df["EMPI_ID"]
 
@@ -446,5 +438,5 @@ if not filtered_df.empty:
         label="⬇️ Download Full Table as Excel",
         data=excel_buffer,
         file_name="patient_reports.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        mime="application/vnd.openxmlformers-officedocument.spreadsheetml.sheet"
     )
