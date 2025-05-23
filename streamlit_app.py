@@ -8,8 +8,6 @@ from data_storage import store_data_sql, load_data_sql, init_db, reset_db, retry
 import sqlite3
 import datetime
 import io
-from dotenv import load_dotenv
-import os
 
 st.set_page_config(
     page_title="Radiology Findings Dashboard",
@@ -110,21 +108,7 @@ def add_custom_css():
 
 add_custom_css()
 init_db()
-configure_gemini(api_key=os.getenv("OPENAI_API_KEY"))
-
-load_dotenv()
-
-# Load credentials from .env
-SNOWFLAKE_CREDS = {
-    "user": os.getenv("SNOWFLAKE_USER"),
-    "password": os.getenv("SNOWFLAKE_PASSWORD"),
-    "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-    "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
-    "database": os.getenv("SNOWFLAKE_DATABASE"),
-    "schema": os.getenv("SNOWFLAKE_SCHEMA"),
-}
-
-
+configure_gemini(api_key="AIzaSyAZ5BSEUTGEOrKeX2AIUdD-CIDuH5lTB1U")
 
 # Sidebar dev tools
 if st.sidebar.button("Reset DB"):
