@@ -85,17 +85,19 @@ if st.sidebar.button("Reset DB"):
     st.sidebar.success("Database reset. Refresh to reprocess reports.")
     st.stop()
 
-def get_radio_for_retry(empi_id, timestamp):
-    return get_snowflake_data(
+def get_clinical_for_retry(empi_id, timestamp):
+    df = get_snowflake_data(
         user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
         warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
         query=f"""
-            SELECT RADIO_REPORT_TEXT
-            FROM radio_reports
+            SELECT CLINICAL_REPORT_TEXT
+            FROM clinical_reports
             WHERE EMPI_ID = '{empi_id}'
-              AND TO_CHAR(TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') = '{timestamp}'
+            ORDER BY ABS(strftime('%s', '{timestamp}') - strftime('%s', TIMESTAMP)) ASC
+            LIMIT 1
         """
     )
+    return df if isinstance(df, pd.DataFrame) else pd.DataFrame()
 
 def get_clinical_for_retry(empi_id, timestamp):
     return get_snowflake_data(
