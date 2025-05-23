@@ -11,19 +11,6 @@ import io
 from dotenv import load_dotenv
 import os
 
-# Load environment variables
-load_dotenv()
-
-# Load credentials into a dictionary for reuse
-SNOWFLAKE_CREDS = {
-    "user": os.getenv("SNOWFLAKE_USER"),
-    "password": os.getenv("SNOWFLAKE_PASSWORD"),
-    "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-    "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
-    "database": os.getenv("SNOWFLAKE_DATABASE"),
-    "schema": os.getenv("SNOWFLAKE_SCHEMA"),
-}
-
 st.set_page_config(
     page_title="Radiology Findings Dashboard",
     page_icon="🏥",
@@ -136,6 +123,7 @@ SNOWFLAKE_CREDS = {
     "database": os.getenv("SNOWFLAKE_DATABASE"),
     "schema": os.getenv("SNOWFLAKE_SCHEMA"),
 }
+
 
 
 # Sidebar dev tools
