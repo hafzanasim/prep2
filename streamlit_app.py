@@ -125,6 +125,7 @@ add_custom_css()
 init_db()
 configure_gemini(api_key=os.getenv("OPENAI_API_KEY"))
 
+
 # Sidebar dev tools
 if st.sidebar.button("Reset DB"):
     reset_db()
@@ -133,7 +134,8 @@ if st.sidebar.button("Reset DB"):
 
 def get_radio_for_retry(empi_id, timestamp):
     return get_snowflake_data(
-        **SNOWFLAKE_CREDS,
+        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
+        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
         query=f"""
             SELECT RADIO_REPORT_TEXT
             FROM radio_reports
@@ -144,7 +146,8 @@ def get_radio_for_retry(empi_id, timestamp):
 
 def get_clinical_for_retry(empi_id, timestamp):
     df = get_snowflake_data(
-        **SNOWFLAKE_CREDS,
+        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
+        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
         query=f"""
             SELECT CLINICAL_REPORT_TEXT
             FROM clinical_reports
@@ -172,14 +175,16 @@ if st.sidebar.button("Re-run failed LLM findings"):
 @st.cache_data
 def load_radiology_data():
     return get_snowflake_data(
-        **SNOWFLAKE_CREDS,
+        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
+        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
         query="SELECT EMPI_ID, RADIO_REPORT_TEXT, TIMESTAMP FROM radio_reports"
     )
 
 @st.cache_data
 def load_clinical_data():
     return get_snowflake_data(
-        **SNOWFLAKE_CREDS,
+        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
+        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
         query="SELECT EMPI_ID, CLINICAL_REPORT_TEXT, TIMESTAMP FROM clinical_reports"
     )
 
@@ -221,17 +226,7 @@ if 'processed' not in st.session_state:
     # Load and normalize data
     radio_df = load_radiology_data()
     clinical_df = load_clinical_data()
-    
-    # Check if data loading was successful and has required columns
-    if radio_df.empty or "TIMESTAMP" not in radio_df.columns:
-        st.warning("⚠️ No radiology data found or missing required columns. Please check your Snowflake connection and table.")
-        st.stop()
-    
-    if clinical_df.empty or "TIMESTAMP" not in clinical_df.columns:
-        st.warning("⚠️ No clinical data found or missing required columns. Please check your Snowflake connection and table.")
-        st.stop()
 
-    # Normalize timestamps and create empi_id columns
     radio_df["timestamp"] = canonical_ts(radio_df["TIMESTAMP"])
     clinical_df["timestamp"] = canonical_ts(clinical_df["TIMESTAMP"])
     radio_df["empi_id"] = radio_df["EMPI_ID"]
@@ -279,11 +274,6 @@ if 'processed' not in st.session_state:
 
 
 df_display = load_data_sql()
-
-# Check if we have any data to display
-if df_display.empty:
-    st.warning("⚠️ No processed data available. Please check your data sources and processing.")
-    st.stop()
 
 # ------------- Filters ------------------
 st.markdown("### Filters")
@@ -453,5 +443,5 @@ if not filtered_df.empty:
         label="⬇️ Download Full Table as Excel",
         data=excel_buffer,
         file_name="patient_reports.xlsx",
-        mime="application/vnd.openxmlformers-officedocument.spreadsheetml.sheet"
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
