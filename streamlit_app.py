@@ -203,8 +203,35 @@ if 'processed' not in st.session_state:
     radio_df = load_radiology_data()
     clinical_df = load_clinical_data()
 
-    radio_df["timestamp"] = canonical_ts(radio_df["TIMESTAMP"])
-    clinical_df["timestamp"] = canonical_ts(clinical_df["TIMESTAMP"])
+    # Debug: Check column names
+    st.write("Radio DataFrame columns:", radio_df.columns.tolist())
+    st.write("Clinical DataFrame columns:", clinical_df.columns.tolist())
+
+    # Find timestamp column (case-insensitive)
+    radio_timestamp_col = None
+    clinical_timestamp_col = None
+    
+    for col in radio_df.columns:
+        if 'timestamp' in col.lower():
+            radio_timestamp_col = col
+            break
+    
+    for col in clinical_df.columns:
+        if 'timestamp' in col.lower():
+            clinical_timestamp_col = col
+            break
+    
+    if radio_timestamp_col is None:
+        st.error(f"No timestamp column found in radio data. Available columns: {radio_df.columns.tolist()}")
+        st.stop()
+    
+    if clinical_timestamp_col is None:
+        st.error(f"No timestamp column found in clinical data. Available columns: {clinical_df.columns.tolist()}")
+        st.stop()
+
+    # Use the found column names
+    radio_df["timestamp"] = canonical_ts(radio_df[radio_timestamp_col])
+    clinical_df["timestamp"] = canonical_ts(clinical_df[clinical_timestamp_col])
     radio_df["empi_id"] = radio_df["EMPI_ID"]
     clinical_df["empi_id"] = clinical_df["EMPI_ID"]
 
