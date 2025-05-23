@@ -268,10 +268,14 @@ with col1:
     selected_empi = st.selectbox("Select EMPI ID", empi_ids)
 
 with col2:
-    df_display['timestamp'] = pd.to_datetime(df_display['timestamp'])
-    min_date = df_display['timestamp'].min().date()
-    max_date = df_display['timestamp'].max().date()
-    date_range = st.date_input("Date Range", (min_date, max_date), min_value=min_date, max_value=max_date)
+    if df_display.empty or df_display['timestamp'].isnull().all():
+        st.warning("No data available to filter by date.")
+        date_range = (None, None)
+    else:
+        df_display['timestamp'] = pd.to_datetime(df_display['timestamp'])
+        min_date = df_display['timestamp'].min().date()
+        max_date = df_display['timestamp'].max().date()
+        date_range = st.date_input("Date Range", (min_date, max_date), min_value=min_date, max_value=max_date)
 
 with col3:
     selected_critical = st.selectbox("Critical Findings", ["All", "Yes", "No"])
