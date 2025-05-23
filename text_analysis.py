@@ -2,9 +2,14 @@
 import google.generativeai as genai
 import json
 import re
+import os
+from dotenv import load_dotenv
 
-def configure_gemini(api_key):
-    genai.configure(api_key="AIzaSyAZ5BSEUTGEOrKeX2AIUdD-CIDuH5lTB1U")
+load_dotenv()
+
+
+def configure_gemini(api_key=None):
+    genai.configure(api_key=api_key or os.getenv("OPENAI_API_KEY"))
 
 def _remove_fences(text: str) -> str:
     """

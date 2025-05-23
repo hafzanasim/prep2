@@ -8,6 +8,11 @@ from data_storage import store_data_sql, load_data_sql, init_db, reset_db, retry
 import sqlite3
 import datetime
 import io
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 st.set_page_config(
     page_title="Radiology Findings Dashboard",
@@ -15,6 +20,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
 st.markdown("""
 <style>
 .dashboard-banner {
@@ -84,8 +90,8 @@ def add_custom_css():
         text-align: center;
         color: white;
         font-weight: bold;
-        font-size: 1.5rem;  /* Same font size for title and number */
-        gap: 0.5rem;         /* Space between title and number */
+        font-size: 1.5rem;
+        gap: 0.5rem;
     }
 
     .critical { background-color: #dc3545; }
@@ -105,10 +111,9 @@ def add_custom_css():
     }
     </style>""", unsafe_allow_html=True)
 
-
 add_custom_css()
 init_db()
-configure_gemini(api_key="AIzaSyAZ5BSEUTGEOrKeX2AIUdD-CIDuH5lTB1U")
+configure_gemini(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Sidebar dev tools
 if st.sidebar.button("Reset DB"):
@@ -117,31 +122,22 @@ if st.sidebar.button("Reset DB"):
     st.stop()
 
 def get_radio_for_retry(empi_id, timestamp):
-    return get_snowflake_data(
-        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
-        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
-        query=f"""
-            SELECT RADIO_REPORT_TEXT
-            FROM radio_reports
-            WHERE EMPI_ID = '{empi_id}'
-              AND TO_CHAR(TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') = '{timestamp}'
-        """
-    )
+    return get_snowflake_data(f"""
+        SELECT RADIO_REPORT_TEXT
+        FROM radio_reports
+        WHERE EMPI_ID = '{empi_id}'
+          AND TO_CHAR(TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') = '{timestamp}'
+    """)
 
 def get_clinical_for_retry(empi_id, timestamp):
-    df = get_snowflake_data(
-        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
-        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
-        query=f"""
-            SELECT CLINICAL_REPORT_TEXT
-            FROM clinical_reports
-            WHERE EMPI_ID = '{empi_id}'
-            ORDER BY ABS(strftime('%s', '{timestamp}') - strftime('%s', TIMESTAMP)) ASC
-            LIMIT 1
-        """
-    )
+    df = get_snowflake_data(f"""
+        SELECT CLINICAL_REPORT_TEXT
+        FROM clinical_reports
+        WHERE EMPI_ID = '{empi_id}'
+        ORDER BY ABS(strftime('%s', '{timestamp}') - strftime('%s', TIMESTAMP)) ASC
+        LIMIT 1
+    """)
     return df if isinstance(df, pd.DataFrame) else pd.DataFrame()
-
 
 if st.sidebar.button("Re-run failed LLM findings"):
     updated = retry_failed_extractions(
@@ -155,22 +151,18 @@ if st.sidebar.button("Re-run failed LLM findings"):
     else:
         st.sidebar.info("No failed records to reprocess.")
 
-
 @st.cache_data
 def load_radiology_data():
-    return get_snowflake_data(
-        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
-        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
-        query="SELECT EMPI_ID, RADIO_REPORT_TEXT, TIMESTAMP FROM radio_reports"
-    )
+    return get_snowflake_data("""
+        SELECT EMPI_ID, RADIO_REPORT_TEXT, TIMESTAMP FROM radio_reports
+    """)
 
 @st.cache_data
 def load_clinical_data():
-    return get_snowflake_data(
-        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
-        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
-        query="SELECT EMPI_ID, CLINICAL_REPORT_TEXT, TIMESTAMP FROM clinical_reports"
-    )
+    return get_snowflake_data("""
+        SELECT EMPI_ID, CLINICAL_REPORT_TEXT, TIMESTAMP FROM clinical_reports
+    """)
+
 
 # Helper to normalize timestamps
 def canonical_ts(series: pd.Series) -> pd.Series:
