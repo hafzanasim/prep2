@@ -221,6 +221,15 @@ if 'processed' not in st.session_state:
     # Load and normalize data
     radio_df = load_radiology_data()
     clinical_df = load_clinical_data()
+    
+    # Check if data loading was successful and has required columns
+    if radio_df.empty or "TIMESTAMP" not in radio_df.columns:
+        st.warning("⚠️ No radiology data found or missing required columns. Please check your Snowflake connection and table.")
+        st.stop()
+    
+    if clinical_df.empty or "TIMESTAMP" not in clinical_df.columns:
+        st.warning("⚠️ No clinical data found or missing required columns. Please check your Snowflake connection and table.")
+        st.stop()
 
     # Normalize timestamps and create empi_id columns
     radio_df["timestamp"] = canonical_ts(radio_df["TIMESTAMP"])
@@ -270,6 +279,11 @@ if 'processed' not in st.session_state:
 
 
 df_display = load_data_sql()
+
+# Check if we have any data to display
+if df_display.empty:
+    st.warning("⚠️ No processed data available. Please check your data sources and processing.")
+    st.stop()
 
 # ------------- Filters ------------------
 st.markdown("### Filters")
