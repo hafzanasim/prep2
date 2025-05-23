@@ -222,7 +222,7 @@ if 'processed' not in st.session_state:
     radio_df = load_radiology_data()
     clinical_df = load_clinical_data()
 
-    radio_df.rename(columns={"timestamp": "TIMESTAMP"}, inplace=True)
+    # Normalize timestamps and create empi_id columns
     radio_df["timestamp"] = canonical_ts(radio_df["TIMESTAMP"])
     clinical_df["timestamp"] = canonical_ts(clinical_df["TIMESTAMP"])
     radio_df["empi_id"] = radio_df["EMPI_ID"]
