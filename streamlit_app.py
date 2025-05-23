@@ -278,29 +278,41 @@ with col1:
     selected_empi = st.selectbox("Select EMPI ID", empi_ids)
 
 with col2:
+    # Parse timestamps
     df_display['timestamp'] = pd.to_datetime(df_display['timestamp'], errors="coerce")
     valid_timestamps = df_display['timestamp'].dropna()
 
+    st.write("Valid timestamps found:", len(valid_timestamps))
+    st.write("Sample:", valid_timestamps.head())
+
     if not valid_timestamps.empty:
-        min_date = valid_timestamps.min().date()
-        max_date = valid_timestamps.max().date()
+        min_ts = valid_timestamps.min()
+        max_ts = valid_timestamps.max()
+
+        # Ensure they're proper datetime.date
+        if pd.notna(min_ts) and pd.notna(max_ts):
+            min_date = min_ts.date()
+            max_date = max_ts.date()
+
+            st.write("Using min_date:", min_date)
+            st.write("Using max_date:", max_date)
+
+            try:
+                date_range = st.date_input(
+                    "Date Range",
+                    (min_date, max_date),
+                    min_value=min_date,
+                    max_value=max_date
+                )
+            except Exception as e:
+                st.error(f"❌ st.date_input crashed: {e}")
+                date_range = None
+        else:
+            st.warning("⚠️ Could not extract valid min/max dates.")
+            date_range = None
     else:
-        # Use hardcoded safe fallback dates
-        import datetime
-        min_date = datetime.date(2023, 1, 1)
-        max_date = datetime.date.today()
-
-    try:
-        date_range = st.date_input(
-            "Date Range",
-            (min_date, max_date),
-            min_value=min_date,
-            max_value=max_date
-        )
-    except Exception as e:
-        st.error(f"⚠️ Unable to render date selector: {e}")
+        st.warning("⚠️ No non-null timestamps found in data.")
         date_range = None
-
 
 
 with col3:
