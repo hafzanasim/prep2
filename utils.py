@@ -1,4 +1,4 @@
-# utils.py
+# utils.py -- idk why i have this
 import json
 
 def process_extracted_findings(extracted_text):
@@ -10,7 +10,8 @@ def process_extracted_findings(extracted_text):
         'critical_findings': 'No',
         'incidental_findings': 'No',
         'mammogram_score': 'Not Available',
-        'follow_up': 'No'
+        'follow_up': 'No',
+        'risk_level': 'Not Available'
     }
 
     if extracted_text is None:
@@ -32,6 +33,7 @@ def process_extracted_findings(extracted_text):
         findings['incidental_findings'] = extracted_data.get('Incidental Findings', 'No')
         findings['mammogram_score'] = extracted_data.get('Mammogram Score', 'Not Available')
         findings['follow_up'] = extracted_data.get('Do you think a follow up is required', 'No')
+        findings['risk_level'] = extracted_data.get('Risk Level', 'Not Available')
 
         return findings
 

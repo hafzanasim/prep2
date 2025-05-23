@@ -15,7 +15,7 @@ def get_snowflake_data(user, password, account, warehouse, database, schema, que
             account="EFFSIWI-YYB34419",  # Account should be in quotes
             warehouse="COMPUTE_WH",  # Warehouse should be in quotes
             database="RADIOLOGYPREP",  # Database should be in quotes
-            schema="INFORMATION_SCHEMA"  # Schema should be in quotes
+            schema="PUBLIC"  # Schema should be in quotes
         )
 
         # Fetch data
