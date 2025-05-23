@@ -25,7 +25,7 @@ st.markdown("""
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
-    gap: 0rem;
+    gap: 1.8rem;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 .dashboard-logo {
