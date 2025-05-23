@@ -261,17 +261,30 @@ df_display = load_data_sql()
 
 # ------------- Filters ------------------
 st.markdown("### Filters")
+
+# Defensive check for empty DataFrame
+if df_display.empty:
+    st.error("No data available from the database. Please check your data source or queries.")
+    st.stop()
+
+# Ensure 'timestamp' column is in datetime format
+df_display['timestamp'] = pd.to_datetime(df_display['timestamp'], errors="coerce")
+
+# Display EMPI ID options
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
-    empi_ids = ["All"] + sorted(df_display['empi_id'].unique())
+    empi_ids = ["All"] + sorted(df_display['empi_id'].dropna().unique())
     selected_empi = st.selectbox("Select EMPI ID", empi_ids)
 
 with col2:
-    df_display['timestamp'] = pd.to_datetime(df_display['timestamp'])
-    min_date = df_display['timestamp'].min().date()
-    max_date = df_display['timestamp'].max().date()
-    date_range = st.date_input("Date Range", (min_date, max_date), min_value=min_date, max_value=max_date)
+    if df_display['timestamp'].notna().any():
+        min_date = df_display['timestamp'].min().date()
+        max_date = df_display['timestamp'].max().date()
+        date_range = st.date_input("Date Range", (min_date, max_date), min_value=min_date, max_value=max_date)
+    else:
+        st.warning("⚠️ No valid timestamps found for filtering.")
+        date_range = None
 
 with col3:
     selected_critical = st.selectbox("Critical Findings", ["All", "Yes", "No"])
@@ -282,6 +295,7 @@ with col4:
 with col5:
     selected_risk = st.selectbox("Risk Level", ["All", "Low", "Medium", "High"])
 
+# Free-text search
 patient_search = st.text_input("Search Patient ID")
 
 # ------------- Filtering Logic ---------------
@@ -290,7 +304,7 @@ filtered_df = df_display.copy()
 if selected_empi != "All":
     filtered_df = filtered_df[filtered_df['empi_id'] == selected_empi]
 
-if len(date_range) == 2:
+if date_range and len(date_range) == 2:
     start_date, end_date = date_range
     filtered_df = filtered_df[
         (filtered_df['timestamp'].dt.date >= start_date) &
@@ -308,6 +322,7 @@ if selected_risk != "All":
 
 if patient_search:
     filtered_df = filtered_df[filtered_df['empi_id'].str.contains(patient_search, case=False)]
+
 
 # ------------- Summary Cards ------------------
 st.markdown("### Findings Overview")
