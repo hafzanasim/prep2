@@ -268,22 +268,26 @@ with col1:
     selected_empi = st.selectbox("Select EMPI ID", empi_ids)
 
 with col2:
-    try:
-        df_display['timestamp'] = pd.to_datetime(df_display['timestamp'], errors='coerce')
-        df_valid_dates = df_display.dropna(subset=['timestamp'])
-        
-        if df_valid_dates.empty:
-            st.warning("No valid timestamps available for filtering.")
-            date_range = (None, None)
-        else:
-            min_date = df_valid_dates['timestamp'].min().date()
-            max_date = df_valid_dates['timestamp'].max().date()
-            date_range = st.date_input(
-                "Date Range", (min_date, max_date), min_value=min_date, max_value=max_date
-            )
-    except Exception as e:
-        st.error(f"Error with date filtering: {e}")
+    df_display['timestamp'] = pd.to_datetime(df_display['timestamp'], errors='coerce')
+    valid_timestamps = df_display['timestamp'].dropna()
+
+    if valid_timestamps.empty:
+        st.warning("⚠️ No valid timestamps available. Skipping date filter.")
         date_range = (None, None)
+    else:
+        try:
+            min_date = valid_timestamps.min().date()
+            max_date = valid_timestamps.max().date()
+
+            # Ensure both are valid datetime.date objects
+            if pd.isna(min_date) or pd.isna(max_date):
+                raise ValueError("Date range includes NaT.")
+
+            date_range = st.date_input("Date Range", (min_date, max_date), min_value=min_date, max_value=max_date)
+        except Exception as e:
+            st.error(f"❌ Error setting date range filter: {e}")
+            date_range = (None, None)
+
 
 with col3:
     selected_critical = st.selectbox("Critical Findings", ["All", "Yes", "No"])
