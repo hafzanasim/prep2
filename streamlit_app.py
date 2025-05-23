@@ -7,6 +7,7 @@ from text_analysis import extract_findings, configure_gemini
 from data_storage import store_data_sql, load_data_sql, init_db, reset_db, retry_failed_extractions
 import sqlite3
 import datetime
+import io
 
 st.set_page_config(
     page_title="Radiology Findings Dashboard",
@@ -386,3 +387,15 @@ if not page_data.empty:
                     st.switch_page("pages/patient_detail.py")
 else:
     st.warning("No data available.")
+
+# --- Excel download button ---
+if not filtered_df.empty:
+    excel_buffer = io.BytesIO()
+    filtered_df.to_excel(excel_buffer, index=False)
+    excel_buffer.seek(0)
+    st.download_button(
+        label="⬇️ Download Full Table as Excel",
+        data=excel_buffer,
+        file_name="patient_reports.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )

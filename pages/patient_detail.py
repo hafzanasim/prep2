@@ -1,3 +1,4 @@
+#page/patient_detail.py
 import streamlit as st
 import pandas as pd
 from data_retrieval import get_snowflake_data
@@ -126,7 +127,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ——— Tabs Layout ———
-tabs = st.tabs(["Radiology Report", "Clinical Report"])
+tabs = st.tabs(["Radiology Report", "Clinical Report", "Download JSON"])
 
 with tabs[0]:
     col1, col2 = st.columns([3, 2])
@@ -172,6 +173,29 @@ with tabs[1]:
         </div>
         """, unsafe_allow_html=True)
 
+    # Download JSON tab
+    with tabs[2]:
+        st.subheader("Download Extracted Data (JSON)")
+        export_dict = {
+            "empi_id": record["empi_id"],
+            "timestamp": str(record["timestamp"]),
+            "critical_findings": record["critical_findings"],
+            "incidental_findings": record["incidental_findings"],
+            "mammogram_score": record["mammogram_score"],
+            "follow_up": record["follow_up"],
+            "risk_level": record["risk_level"],
+            "summary": record.get("summary", "N/A")
+        }
+
+        st.json(export_dict, expanded=False)
+
+        json_str = pd.Series(export_dict).to_json(indent=2)
+        st.download_button(
+            label="📥 Download JSON",
+            data=json_str,
+            file_name=f"{record['empi_id']}_{record['timestamp']}.json",
+            mime="application/json"
+        )
 # ——— Back button ———
 st.markdown("---")
 if st.button("⬅ Back to Dashboard"):

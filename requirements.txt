@@ -4,3 +4,4 @@ plotly
 google-generativeai
 plotly.express
 snowflake-connector-python
+openpyxl
