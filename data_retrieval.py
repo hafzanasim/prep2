@@ -7,9 +7,9 @@ import os
 # Load .env file
 load_dotenv()
 
-def get_snowflake_data(query: str):
+def get_snowflake_data(*, user, password, account, warehouse, database, schema, query):
     """
-    Connects to Snowflake using environment variables and executes the given query.
+    Connects to Snowflake and retrieves data.
     """
     try:
         # Connect using .env credentials
