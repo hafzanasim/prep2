@@ -9,7 +9,7 @@ load_dotenv()
 
 
 def configure_gemini(api_key=None):
-    genai.configure(api_key=api_key or os.getenv("OPENAI_API_KEY"))
+    genai.configure(api_key=api_key or os.getenv("GEMINI_API_KEY"))
 
 def _remove_fences(text: str) -> str:
     """

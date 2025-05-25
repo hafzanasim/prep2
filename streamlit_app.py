@@ -108,7 +108,7 @@ def add_custom_css():
 
 add_custom_css()
 init_db()
-configure_gemini(api_key="AIzaSyAZ5BSEUTGEOrKeX2AIUdD-CIDuH5lTB1U")
+configure_gemini()
 
 # Sidebar dev tools
 if st.sidebar.button("Reset DB"):
@@ -118,8 +118,6 @@ if st.sidebar.button("Reset DB"):
 
 def get_radio_for_retry(empi_id, timestamp):
     return get_snowflake_data(
-        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
-        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
         query=f"""
             SELECT RADIO_REPORT_TEXT
             FROM radio_reports
@@ -130,8 +128,6 @@ def get_radio_for_retry(empi_id, timestamp):
 
 def get_clinical_for_retry(empi_id, timestamp):
     df = get_snowflake_data(
-        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
-        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
         query=f"""
             SELECT CLINICAL_REPORT_TEXT
             FROM clinical_reports
@@ -159,16 +155,12 @@ if st.sidebar.button("Re-run failed LLM findings"):
 @st.cache_data
 def load_radiology_data():
     return get_snowflake_data(
-        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
-        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
         query="SELECT EMPI_ID, RADIO_REPORT_TEXT, TIMESTAMP FROM radio_reports"
     )
 
 @st.cache_data
 def load_clinical_data():
     return get_snowflake_data(
-        user='HAFZANASIM', password='Goodluck1234567!', account='YYB34419',
-        warehouse='COMPUTE_WH', database='RADIOLOGYPREP', schema='PUBLIC',
         query="SELECT EMPI_ID, CLINICAL_REPORT_TEXT, TIMESTAMP FROM clinical_reports"
     )
 
