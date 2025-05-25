@@ -201,7 +201,14 @@ def merge_closest_by_timestamp(radio_df, clinical_df):
 if 'processed' not in st.session_state:
     # Load and normalize data
     radio_df = load_radiology_data()
+    if radio_df is None or radio_df.empty:
+        st.error("Failed to load radiology data from Snowflake. Please check your .env configuration and Snowflake connection.")
+        st.stop()
+
     clinical_df = load_clinical_data()
+    if clinical_df is None or clinical_df.empty:
+        st.error("Failed to load clinical data from Snowflake. Please check your .env configuration and Snowflake connection.")
+        st.stop()
 
     radio_df["timestamp"] = canonical_ts(radio_df["TIMESTAMP"])
     clinical_df["timestamp"] = canonical_ts(clinical_df["TIMESTAMP"])
