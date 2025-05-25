@@ -3,9 +3,9 @@
 import snowflake.connector
 import pandas as pd
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+load_dotenv(find_dotenv(usecwd=True))
 
 def get_snowflake_data(query):
     """
