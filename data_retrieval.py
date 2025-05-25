@@ -55,4 +55,4 @@ def get_snowflake_data(query):
         return df
     except Exception as e:
         print(f"Error retrieving data from Snowflake: {e}")
-        return None
+        raise e
