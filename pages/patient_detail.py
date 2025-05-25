@@ -95,7 +95,7 @@ def debug_fetch_rad_rows(patient_id: str, canonical_selected_ts_str: str) -> pd.
     rad_query = f"""
         SELECT EMPI_ID, RADIO_REPORT_TEXT, TIMESTAMP
         FROM radio_reports
-        WHERE EMPI_ID = '{patient_id}' AND TO_CHAR(TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') = '{canonical_selected_ts_str}'
+        WHERE EMPI_ID = '{patient_id}' AND TO_CHAR(CAST(TIMESTAMP AS TIMESTAMP_NTZ), 'YYYY-MM-DD HH24:MI:SS') = '{canonical_selected_ts_str}'
         LIMIT 1
     """
     df = get_snowflake_data(query=rad_query)
