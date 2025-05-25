@@ -5,6 +5,7 @@ import plotly.express as px
 from data_retrieval import get_snowflake_data
 from text_analysis import extract_findings, configure_gemini
 from data_storage import store_data_sql, load_data_sql, init_db, reset_db, retry_failed_extractions
+from utils import canonical_ts
 import sqlite3
 import datetime
 import io
@@ -163,43 +164,6 @@ def load_clinical_data():
     return get_snowflake_data(
         query="SELECT EMPI_ID, CLINICAL_REPORT_TEXT, TIMESTAMP FROM clinical_reports"
     )
-
-# Helper to normalize timestamps
-def canonical_ts(series: pd.Series) -> pd.Series:
-    # Ensure it's a pandas Series
-    if not isinstance(series, pd.Series):
-        series = pd.Series(series)
-
-    dt_series = pd.to_datetime(series, errors='coerce')
-
-    # Check if any valid datetime objects exist after coercion
-    if dt_series.notna().empty or dt_series.notna().sum() == 0:
-        # Return an empty series of object dtype or original if all NaT
-        # to avoid errors on .dt accessor with all NaT series.
-        return pd.Series([], dtype='object') if series.empty else series.astype(object)
-
-
-    # Convert to UTC if timezone aware
-    if dt_series.dt.tz is not None:
-        dt_series = dt_series.dt.tz_convert('UTC')
-
-    # Floor to second, make naive, and format
-    # Apply operations only to non-NaT values to avoid warnings/errors
-    # then fill NaT back if any, though coerce should handle bad dates.
-    
-    # Create a mask for non-NaT values
-    not_nat_mask = dt_series.notna()
-    
-    # Initialize result series with original values (especially NaTs)
-    result_series = pd.Series(index=dt_series.index, dtype=object)
-
-    if not_nat_mask.any():
-      result_series[not_nat_mask] = dt_series[not_nat_mask].dt.floor("s").dt.tz_localize(None).dt.strftime("%Y-%m-%d %H:%M:%S")
-    
-    # Fill any NaNs/NaTs that might not have been covered - with None or pd.NaT as string
-    result_series[~not_nat_mask] = None # Or pd.NaT depending on desired representation of invalid dates
-
-    return result_series
 
 # Helper to match each radiology report with the closest clinical report
 def merge_closest_by_timestamp(radio_df, clinical_df):
