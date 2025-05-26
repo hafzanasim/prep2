@@ -3,16 +3,9 @@
 import snowflake.connector
 import pandas as pd
 import os
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 
-load_dotenv(find_dotenv(usecwd=True))
-
-print(f"DEBUG data_retrieval: SNOWFLAKE_USER='{os.getenv('SNOWFLAKE_USER')}'")
-print(f"DEBUG data_retrieval: SNOWFLAKE_PASSWORD_IS_SET={'SET' if os.getenv('SNOWFLAKE_PASSWORD') else 'NOT SET'}") # Avoid printing actual password
-print(f"DEBUG data_retrieval: SNOWFLAKE_ACCOUNT='{os.getenv('SNOWFLAKE_ACCOUNT')}'")
-print(f"DEBUG data_retrieval: SNOWFLAKE_WAREHOUSE='{os.getenv('SNOWFLAKE_WAREHOUSE')}'")
-print(f"DEBUG data_retrieval: SNOWFLAKE_DATABASE='{os.getenv('SNOWFLAKE_DATABASE')}'")
-print(f"DEBUG data_retrieval: SNOWFLAKE_SCHEMA='{os.getenv('SNOWFLAKE_SCHEMA')}'")
+load_dotenv(override=True)
 
 def get_snowflake_data(query):
     """
