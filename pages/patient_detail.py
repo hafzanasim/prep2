@@ -90,14 +90,13 @@ if record_df.empty:
 record = record_df.iloc[0]
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False)  
 def debug_fetch_rad_rows(patient_id: str, canonical_selected_ts_str: str) -> pd.DataFrame:
     rad_query = f"""
         SELECT EMPI_ID, RADIO_REPORT_TEXT, TIMESTAMP
         FROM radio_reports
         WHERE EMPI_ID = '{patient_id}'
-          AND TIMESTAMP >= TO_TIMESTAMP_NTZ('{canonical_selected_ts_str}', 'YYYY-MM-DD HH24:MI:SS')
-          AND TIMESTAMP < DATEADD(SECOND, 1, TO_TIMESTAMP_NTZ('{canonical_selected_ts_str}', 'YYYY-MM-DD HH24:MI:SS'))
+        ORDER BY ABS(EXTRACT(EPOCH_SECOND FROM TIMESTAMP) - EXTRACT(EPOCH_SECOND FROM TO_TIMESTAMP_NTZ('{canonical_selected_ts_str}', 'YYYY-MM-DD HH24:MI:SS')))
         LIMIT 1
     """
     df = get_snowflake_data(query=rad_query)
