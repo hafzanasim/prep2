@@ -410,16 +410,16 @@ if not page_data.empty:
     <style>
     .table-header {
         display: grid;
-        /* Adjusted for 10 columns: EMPI, AI Timestamp, Scan Type, Radiologist, Critical, Incidental, Score, Risk, Resp. Time, Action */
-        grid-template-columns: 1.4fr 1.5fr 1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr 0.7fr;
+        /* New proportions for 10 columns */
+        grid-template-columns: 1.5fr 1.2fr 1.3fr 1.3fr 0.7fr 0.7fr 0.7fr 1fr 1fr 0.8fr;
         font-weight: bold;
         margin-top: 1rem;
         margin-bottom: 0.5rem;
     }
     .table-row {
         display: grid;
-        /* Adjusted for 10 columns */
-        grid-template-columns: 1.4fr 1.5fr 1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr 0.7fr;
+        /* New proportions for 10 columns */
+        grid-template-columns: 1.5fr 1.2fr 1.3fr 1.3fr 0.7fr 0.7fr 0.7fr 1fr 1fr 0.8fr;
         align-items: center;
         padding: 0.3rem 0;
         border-bottom: 1px solid #eee;
@@ -444,7 +444,8 @@ if not page_data.empty:
 
     for i, row in page_data.reset_index(drop=True).iterrows():
         with st.container():
-            cols = st.columns([1.4, 1.5, 1, 1, 0.8, 0.8, 0.8, 0.8, 1, 0.7]) # Adjusted for 10 columns
+            # Adjusted st.columns to match new CSS fr unit proportions
+            cols = st.columns([1.5, 1.2, 1.3, 1.3, 0.7, 0.7, 0.7, 1, 1, 0.8]) 
             cols[0].write(row["empi_id"])
             
             # Display AI Report Timestamp as Exam Date in MM-DD-YYYY format

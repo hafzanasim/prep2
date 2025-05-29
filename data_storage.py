@@ -62,7 +62,9 @@ def init_db(db_name="findings_db.sqlite"):
         critical_finding_response_time_minutes INTEGER,
         scan_type TEXT,
         radiologist_name TEXT,
-        ai_report_timestamp TEXT
+        ai_report_timestamp TEXT,
+        critical_findings_text TEXT,
+        incidental_findings_text TEXT
     )
     """)
     conn.commit()
@@ -134,6 +136,10 @@ def store_data_sql(extracted_data, db_name="findings_db.sqlite"):
         radiologist_name = data.get('radiologist_name', '')
         exam_date_ai_str = data.get('exam_date_ai', '')
         ai_report_timestamp_val = parse_ai_date_to_timestamp_str(exam_date_ai_str)
+        
+        # Get new text fields
+        critical_findings_text = data.get('critical_findings_text', '')
+        incidental_findings_text = data.get('incidental_findings_text', '')
 
 
         # Prevent duplicates
@@ -146,9 +152,10 @@ def store_data_sql(extracted_data, db_name="findings_db.sqlite"):
             INSERT INTO findings (
                 empi_id, critical_findings, incidental_findings,
                 mammogram_score, follow_up, risk_level, summary, timestamp,
-                critical_finding_response_time_minutes, scan_type, radiologist_name, ai_report_timestamp
+                critical_finding_response_time_minutes, scan_type, radiologist_name, ai_report_timestamp,
+                critical_findings_text, incidental_findings_text
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 data['empi_id'],
                 data['critical_findings'],
@@ -161,7 +168,9 @@ def store_data_sql(extracted_data, db_name="findings_db.sqlite"):
                 critical_finding_response_time_minutes,
                 scan_type,
                 radiologist_name,
-                ai_report_timestamp_val
+                ai_report_timestamp_val,
+                critical_findings_text,
+                incidental_findings_text
             ))
 
     conn.commit()
@@ -174,7 +183,8 @@ def load_data_sql(db_name="findings_db.sqlite"):
         df = pd.read_sql_query("""
         SELECT empi_id, timestamp, critical_findings, incidental_findings,
                mammogram_score, follow_up, risk_level, summary,
-               critical_finding_response_time_minutes, scan_type, radiologist_name, ai_report_timestamp
+               critical_finding_response_time_minutes, scan_type, radiologist_name, ai_report_timestamp,
+               critical_findings_text, incidental_findings_text
         FROM findings
         """, conn)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -264,6 +274,10 @@ def retry_failed_extractions(extract_fn, get_radio_fn, get_clinical_fn, db_name=
         radiologist_name = findings.get('radiologist_name', '')
         exam_date_ai_str = findings.get('exam_date_ai', '')
         ai_report_timestamp_val = parse_ai_date_to_timestamp_str(exam_date_ai_str)
+        
+        # Get new text fields for retry
+        critical_findings_text = findings.get('critical_findings_text', '')
+        incidental_findings_text = findings.get('incidental_findings_text', '')
 
 
         cursor.execute("""
@@ -277,7 +291,9 @@ def retry_failed_extractions(extract_fn, get_radio_fn, get_clinical_fn, db_name=
                 critical_finding_response_time_minutes = ?,
                 scan_type = ?,
                 radiologist_name = ?,
-                ai_report_timestamp = ?
+                ai_report_timestamp = ?,
+                critical_findings_text = ?,
+                incidental_findings_text = ?
             WHERE id = ?
         """, (
             findings["critical_findings"],
@@ -290,6 +306,8 @@ def retry_failed_extractions(extract_fn, get_radio_fn, get_clinical_fn, db_name=
             scan_type,
             radiologist_name,
             ai_report_timestamp_val,
+            critical_findings_text,
+            incidental_findings_text,
             row["id"]
         ))
 

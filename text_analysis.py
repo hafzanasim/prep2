@@ -42,9 +42,11 @@ def extract_findings(radiology_text, clinical_text):
     * Scan Type: [Type of scan performed, e.g., MRI Brain, CT Chest]
     * Exam Date: [Date of examination from report text, e.g., YYYY-MM-DD]
     * Radiologist Name: [Name of the reporting radiologist]
+    * Critical Findings Text: "[Actual text of critical findings from the report, or 'None' if no critical findings]"
+    * Incidental Findings Text: "[Actual text of incidental findings from the report, or 'None' if no incidental findings]"
 
     Return ONLY the following keys in a JSON object:
-    "Critical Findings", "Incidental Findings", "Mammogram Score", "Follow Up Required", "Risk Level", "Summary", "Time Critical Findings Found", "Time Critical Findings Reported", "Scan Type", "Exam Date", and "Radiologist Name".
+    "Critical Findings", "Incidental Findings", "Mammogram Score", "Follow Up Required", "Risk Level", "Summary", "Time Critical Findings Found", "Time Critical Findings Reported", "Scan Type", "Exam Date", "Radiologist Name", "Critical Findings Text", and "Incidental Findings Text".
 
     Do not include commentary or code block formatting.
     """
@@ -69,7 +71,9 @@ def extract_findings(radiology_text, clinical_text):
             'time_reported'      : data.get('Time Critical Findings Reported', ''),
             'scan_type'          : data.get('Scan Type', ''),
             'exam_date_ai'       : data.get('Exam Date', ''),
-            'radiologist_name'   : data.get('Radiologist Name', '')
+            'radiologist_name'   : data.get('Radiologist Name', ''),
+            'critical_findings_text': data.get('Critical Findings Text', ''),
+            'incidental_findings_text': data.get('Incidental Findings Text', '')
         }
     except Exception as e:
         print("Error extracting findings:", e)
@@ -84,6 +88,8 @@ def extract_findings(radiology_text, clinical_text):
             'time_reported'      : '',
             'scan_type'          : '',
             'exam_date_ai'       : '',
-            'radiologist_name'   : ''
+            'radiologist_name'   : '',
+            'critical_findings_text': '',
+            'incidental_findings_text': ''
         }
 

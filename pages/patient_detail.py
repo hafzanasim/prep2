@@ -236,13 +236,21 @@ with tabs[0]:
             f"<div class='report-text'>{radiology_text}</div>", unsafe_allow_html=True)
 
     with col2:
-        st.subheader("Extracted Findings")
+        st.subheader("Extracted Findings Details") # Renamed for clarity
+        
+        crit_text = record.get('critical_findings_text', '')
+        inc_text = record.get('incidental_findings_text', '')
+
+        # Ensure "None" or empty strings are handled gracefully for display
+        crit_display_text = crit_text if crit_text and crit_text.strip().lower() not in ['none', ''] else "None extracted or N/A"
+        inc_display_text = inc_text if inc_text and inc_text.strip().lower() not in ['none', ''] else "None extracted or N/A"
+
         st.markdown(f"""
-        <div class='report-text'><b>Scan Type:</b> {record.get('scan_type', 'N/A')}<br>
-        <b>Radiologist Name:</b> {record.get('radiologist_name', 'N/A')}<br>
-        <b>Critical Findings:</b> {record.get('critical_findings', 'N/A')}<br>
-        <b>Incidental Findings:</b> {record.get('incidental_findings', 'N/A')}<br>
-        <b>Mammogram Score:</b> {record.get('mammogram_score', 'N/A')}<br>
+        <div class='report-text'>
+        <b>Critical Findings Text:</b><br>
+        {crit_display_text}<br><br>
+        <b>Incidental Findings Text:</b><br>
+        {inc_display_text}<br><br>
         <b>Follow-up Required:</b> {record.get('follow_up', 'N/A')}<br>
         <b>Risk Level:</b> {record.get('risk_level', 'N/A')}
         </div>
@@ -280,11 +288,13 @@ with tabs[1]:
         export_dict = {
             "empi_id": record.get("empi_id", "N/A"),
             "original_snowflake_timestamp": str(record.get("timestamp")) if pd.notna(record.get("timestamp")) else None,
-            "exam_date_ai": ai_ts_export,
+            "exam_date_ai": ai_ts_export, # This is already YYYY-MM-DD HH:MM:SS or None
             "scan_type": record.get('scan_type', 'N/A'),
             "radiologist_name": record.get('radiologist_name', 'N/A'),
-            "critical_findings": record.get("critical_findings", "N/A"),
-            "incidental_findings": record.get("incidental_findings", "N/A"),
+            "critical_findings_status": record.get("critical_findings", "N/A"), # Renamed for clarity vs text
+            "critical_findings_text": record.get('critical_findings_text', 'N/A'),
+            "incidental_findings_status": record.get("incidental_findings", "N/A"), # Renamed for clarity vs text
+            "incidental_findings_text": record.get('incidental_findings_text', 'N/A'),
             "mammogram_score": record.get("mammogram_score", "N/A"),
             "follow_up": record.get("follow_up", "N/A"),
             "risk_level": record.get("risk_level", "N/A"),
@@ -292,8 +302,13 @@ with tabs[1]:
             "critical_finding_response_time_minutes": response_time_display 
         }
         # Ensure N/A string fields are consistent for export
-        for key in ['scan_type', 'radiologist_name', 'critical_findings', 'incidental_findings', 'mammogram_score', 'follow_up', 'risk_level', 'summary']:
-            if export_dict[key] is None or pd.isna(export_dict[key]):
+        export_keys_to_normalize = [
+            'scan_type', 'radiologist_name', 'critical_findings_status', 'critical_findings_text',
+            'incidental_findings_status', 'incidental_findings_text', 'mammogram_score', 
+            'follow_up', 'risk_level', 'summary'
+        ]
+        for key in export_keys_to_normalize:
+            if export_dict[key] is None or pd.isna(export_dict[key]) or export_dict[key] == '':
                 export_dict[key] = "N/A"
 
 
