@@ -155,7 +155,14 @@ clin_df = debug_fetch_clin_rows(patient_id, selected_timestamp) # selected_times
 radiology_text = rad_df.iloc[0]['RADIO_REPORT_TEXT'] if not rad_df.empty else "No radiology reports found."
 
 # ——— Header Banner ———
-exam_date = selected_timestamp.strftime('%Y-%m-%d')
+# Use AI Report Timestamp for Exam Date display
+ai_exam_date_val = record.get('ai_report_timestamp')
+exam_date_display = "N/A"
+if pd.notna(ai_exam_date_val) and hasattr(ai_exam_date_val, 'strftime'):
+    exam_date_display = ai_exam_date_val.strftime('%Y-%m-%d')
+elif pd.notna(selected_timestamp) and hasattr(selected_timestamp, 'strftime'): # Fallback for display if AI date missing
+    exam_date_display = selected_timestamp.strftime('%Y-%m-%d')
+
 
 # Prepare response time display
 response_time_val = record.get('critical_finding_response_time_minutes')
@@ -163,16 +170,25 @@ response_time_display = "N/A"
 if pd.notna(response_time_val):
     response_time_display = f"{int(response_time_val)} mins"
 
+# Get new fields for banner
+scan_type_display = record.get('scan_type', 'N/A')
+if not scan_type_display or pd.isna(scan_type_display): scan_type_display = "N/A"
+radiologist_name_display = record.get('radiologist_name', 'N/A')
+if not radiologist_name_display or pd.isna(radiologist_name_display): radiologist_name_display = "N/A"
+
+
 st.markdown(f"""
 <div class="banner">
     <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
         <div style="font-size: 1.5rem; font-weight: bold;">🏥 Patient ID: {patient_id}</div>
-        <div style="font-size: 1.2rem;">📅 Exam Date: {exam_date}</div>
+        <div style="font-size: 1.2rem;">📅 AI Exam Date: {exam_date_display}</div>
     </div>
-    <div style="margin-top: 0.5rem;">
-        🔴 <b>Critical:</b> {record['critical_findings']} &nbsp;&nbsp;
-        🟠 <b>Incidental:</b> {record['incidental_findings']} &nbsp;&nbsp;
-        🎯 <b>BI–RADS Score:</b> {record['mammogram_score']} &nbsp;&nbsp;
+    <div style="margin-top: 0.5rem; font-size: 0.95rem;">
+        📄 <b>Scan Type:</b> {scan_type_display} &nbsp;&nbsp;
+        👨‍⚕️ <b>Radiologist:</b> {radiologist_name_display} <br>
+        🔴 <b>Critical:</b> {record.get('critical_findings', 'N/A')} &nbsp;&nbsp;
+        🟠 <b>Incidental:</b> {record.get('incidental_findings', 'N/A')} &nbsp;&nbsp;
+        🎯 <b>BI–RADS Score:</b> {record.get('mammogram_score', 'N/A')} &nbsp;&nbsp;
         ⏱️ <b>Response Time:</b> {response_time_display}
     </div>
 </div>
@@ -186,21 +202,33 @@ with tabs[0]:
 
     with col1:
         st.subheader("Original Radiology Report")
+        
+        # Display AI Processed Report Timestamp as primary for this tab
+        ai_report_ts_val = record.get('ai_report_timestamp')
+        report_ts_display = "N/A"
+        if pd.notna(ai_report_ts_val) and hasattr(ai_report_ts_val, 'strftime'):
+            report_ts_display = ai_report_ts_val.strftime('%Y-%m-%d %H:%M:%S')
+        st.caption(f"AI Processed Report Timestamp: {report_ts_display}")
+
+        # Optionally, display original Snowflake timestamp if different and available
         if not rad_df.empty:
-            ts = rad_df.iloc[0]['TIMESTAMP_naive'].strftime(
-                '%Y-%m-%d %H:%M:%S')
-            st.caption(f"Report Timestamp: {ts}")
+            original_ts = rad_df.iloc[0]['TIMESTAMP_naive'].strftime('%Y-%m-%d %H:%M:%S')
+            if original_ts != report_ts_display : # Only show if different or AI one is N/A
+                 st.caption(f"Original Snowflake Report Timestamp: {original_ts}")
+        
         st.markdown(
             f"<div class='report-text'>{radiology_text}</div>", unsafe_allow_html=True)
 
     with col2:
         st.subheader("Extracted Findings")
         st.markdown(f"""
-        <div class='report-text'><b>Critical Findings:</b> {record['critical_findings']}<br>
-        <b>Incidental Findings:</b> {record['incidental_findings']}<br>
-        <b>Mammogram Score:</b> {record['mammogram_score']}<br>
-        <b>Follow-up Required:</b> {record['follow_up']}<br>
-        <b>Risk Level:</b> {record['risk_level']}
+        <div class='report-text'><b>Scan Type:</b> {record.get('scan_type', 'N/A')}<br>
+        <b>Radiologist Name:</b> {record.get('radiologist_name', 'N/A')}<br>
+        <b>Critical Findings:</b> {record.get('critical_findings', 'N/A')}<br>
+        <b>Incidental Findings:</b> {record.get('incidental_findings', 'N/A')}<br>
+        <b>Mammogram Score:</b> {record.get('mammogram_score', 'N/A')}<br>
+        <b>Follow-up Required:</b> {record.get('follow_up', 'N/A')}<br>
+        <b>Risk Level:</b> {record.get('risk_level', 'N/A')}
         </div>
         """, unsafe_allow_html=True)
 
@@ -228,17 +256,30 @@ with tabs[1]:
     # Download JSON tab
     with tabs[2]:
         st.subheader("Download Extracted Data (JSON)")
+        
+        ai_ts_export = None
+        if pd.notna(record.get("ai_report_timestamp")) and hasattr(record.get("ai_report_timestamp"), 'strftime'):
+            ai_ts_export = record.get("ai_report_timestamp").strftime('%Y-%m-%d %H:%M:%S')
+
         export_dict = {
-            "empi_id": record["empi_id"],
-            "timestamp": str(record["timestamp"]),
-            "critical_findings": record["critical_findings"],
-            "incidental_findings": record["incidental_findings"],
-            "mammogram_score": record["mammogram_score"],
-            "follow_up": record["follow_up"],
-            "risk_level": record["risk_level"],
+            "empi_id": record.get("empi_id", "N/A"),
+            "original_snowflake_timestamp": str(record.get("timestamp")) if pd.notna(record.get("timestamp")) else None,
+            "exam_date_ai": ai_ts_export,
+            "scan_type": record.get('scan_type', 'N/A'),
+            "radiologist_name": record.get('radiologist_name', 'N/A'),
+            "critical_findings": record.get("critical_findings", "N/A"),
+            "incidental_findings": record.get("incidental_findings", "N/A"),
+            "mammogram_score": record.get("mammogram_score", "N/A"),
+            "follow_up": record.get("follow_up", "N/A"),
+            "risk_level": record.get("risk_level", "N/A"),
             "summary": record.get("summary", "N/A"),
-            "critical_finding_response_time_minutes": response_time_display # Use the formatted one
+            "critical_finding_response_time_minutes": response_time_display 
         }
+        # Ensure N/A string fields are consistent for export
+        for key in ['scan_type', 'radiologist_name', 'critical_findings', 'incidental_findings', 'mammogram_score', 'follow_up', 'risk_level', 'summary']:
+            if export_dict[key] is None or pd.isna(export_dict[key]):
+                export_dict[key] = "N/A"
+
 
         st.json(export_dict, expanded=False)
 

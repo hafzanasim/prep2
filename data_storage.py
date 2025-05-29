@@ -2,7 +2,7 @@
 import sqlite3
 import pandas as pd
 import os
-from datetime import datetime, date
+from datetime import datetime, date, time
 
 # Helper function to parse time strings
 def parse_time_string(time_str: str, report_date: date):
@@ -23,6 +23,27 @@ def parse_time_string(time_str: str, report_date: date):
             continue
     return None
 
+# Helper function to parse AI-extracted date string to a specific timestamp string
+def parse_ai_date_to_timestamp_str(date_str: str):
+    if not date_str or not isinstance(date_str, str):
+        return None
+    try:
+        # Assuming date_str is YYYY-MM-DD
+        dt_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        # Combine with a default time, e.g., midday
+        full_dt_obj = datetime.combine(dt_obj.date(), time(12, 0, 0))
+        return full_dt_obj.strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        # Attempt to parse other common date formats if YYYY-MM-DD fails
+        for fmt in ["%m/%d/%Y", "%d/%m/%Y", "%m-%d-%Y", "%d-%m-%Y"]:
+            try:
+                dt_obj = datetime.strptime(date_str, fmt)
+                full_dt_obj = datetime.combine(dt_obj.date(), time(12, 0, 0))
+                return full_dt_obj.strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                continue
+        return None
+
 # Initialize database with full schema (now includes summary)
 def init_db(db_name="findings_db.sqlite"):
     conn = sqlite3.connect(db_name)
@@ -38,7 +59,10 @@ def init_db(db_name="findings_db.sqlite"):
         risk_level TEXT,
         summary TEXT,
         timestamp TEXT,
-        critical_finding_response_time_minutes INTEGER
+        critical_finding_response_time_minutes INTEGER,
+        scan_type TEXT,
+        radiologist_name TEXT,
+        ai_report_timestamp TEXT
     )
     """)
     conn.commit()
@@ -104,6 +128,12 @@ def store_data_sql(extracted_data, db_name="findings_db.sqlite"):
                  db_timestamp_str = report_timestamp_obj.strftime('%Y-%m-%d %H:%M:%S')
             elif isinstance(report_timestamp_obj, str): # Should have been converted, but as fallback
                  db_timestamp_str = report_timestamp_obj
+        
+        # Get new fields
+        scan_type = data.get('scan_type', '')
+        radiologist_name = data.get('radiologist_name', '')
+        exam_date_ai_str = data.get('exam_date_ai', '')
+        ai_report_timestamp_val = parse_ai_date_to_timestamp_str(exam_date_ai_str)
 
 
         # Prevent duplicates
@@ -116,9 +146,9 @@ def store_data_sql(extracted_data, db_name="findings_db.sqlite"):
             INSERT INTO findings (
                 empi_id, critical_findings, incidental_findings,
                 mammogram_score, follow_up, risk_level, summary, timestamp,
-                critical_finding_response_time_minutes
+                critical_finding_response_time_minutes, scan_type, radiologist_name, ai_report_timestamp
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 data['empi_id'],
                 data['critical_findings'],
@@ -128,7 +158,10 @@ def store_data_sql(extracted_data, db_name="findings_db.sqlite"):
                 data['risk_level'],
                 data.get('summary', ''),
                 db_timestamp_str,
-                critical_finding_response_time_minutes
+                critical_finding_response_time_minutes,
+                scan_type,
+                radiologist_name,
+                ai_report_timestamp_val
             ))
 
     conn.commit()
@@ -141,10 +174,13 @@ def load_data_sql(db_name="findings_db.sqlite"):
         df = pd.read_sql_query("""
         SELECT empi_id, timestamp, critical_findings, incidental_findings,
                mammogram_score, follow_up, risk_level, summary,
-               critical_finding_response_time_minutes
+               critical_finding_response_time_minutes, scan_type, radiologist_name, ai_report_timestamp
         FROM findings
         """, conn)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
+        # Ensure ai_report_timestamp is also datetime if needed for display, though it's stored as TEXT
+        if 'ai_report_timestamp' in df.columns:
+            df['ai_report_timestamp'] = pd.to_datetime(df['ai_report_timestamp'], errors='coerce')
         return df
     except Exception as e:
         print("Error loading data from DB:", e)
@@ -222,6 +258,12 @@ def retry_failed_extractions(extract_fn, get_radio_fn, get_clinical_fn, db_name=
                 critical_finding_response_time_minutes = int(time_difference_seconds / 60)
             elif found_datetime and reported_datetime and reported_datetime <= found_datetime:
                 critical_finding_response_time_minutes = 0
+        
+        # Get new fields for retry
+        scan_type = findings.get('scan_type', '')
+        radiologist_name = findings.get('radiologist_name', '')
+        exam_date_ai_str = findings.get('exam_date_ai', '')
+        ai_report_timestamp_val = parse_ai_date_to_timestamp_str(exam_date_ai_str)
 
 
         cursor.execute("""
@@ -232,7 +274,10 @@ def retry_failed_extractions(extract_fn, get_radio_fn, get_clinical_fn, db_name=
                 follow_up = ?,
                 risk_level = ?,
                 summary = ?,
-                critical_finding_response_time_minutes = ?
+                critical_finding_response_time_minutes = ?,
+                scan_type = ?,
+                radiologist_name = ?,
+                ai_report_timestamp = ?
             WHERE id = ?
         """, (
             findings["critical_findings"],
@@ -242,6 +287,9 @@ def retry_failed_extractions(extract_fn, get_radio_fn, get_clinical_fn, db_name=
             findings["risk_level"],
             findings["summary"],
             critical_finding_response_time_minutes,
+            scan_type,
+            radiologist_name,
+            ai_report_timestamp_val,
             row["id"]
         ))
 

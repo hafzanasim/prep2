@@ -39,9 +39,12 @@ def extract_findings(radiology_text, clinical_text):
     * Provide a brief 2-3 sentence summary of the patient’s medical history based on patient’s clinical report.
     * Time Critical Findings Found: [Time in HH:MM AM/PM or HH:MM:SS format]
     * Time Critical Findings Reported: [Time in HH:MM AM/PM or HH:MM:SS format]
+    * Scan Type: [Type of scan performed, e.g., MRI Brain, CT Chest]
+    * Exam Date: [Date of examination from report text, e.g., YYYY-MM-DD]
+    * Radiologist Name: [Name of the reporting radiologist]
 
     Return ONLY the following keys in a JSON object:
-    "Critical Findings", "Incidental Findings", "Mammogram Score", "Follow Up Required", "Risk Level", "Summary", "Time Critical Findings Found", and "Time Critical Findings Reported".
+    "Critical Findings", "Incidental Findings", "Mammogram Score", "Follow Up Required", "Risk Level", "Summary", "Time Critical Findings Found", "Time Critical Findings Reported", "Scan Type", "Exam Date", and "Radiologist Name".
 
     Do not include commentary or code block formatting.
     """
@@ -63,7 +66,10 @@ def extract_findings(radiology_text, clinical_text):
             'risk_level'         : data.get('Risk Level', 'Low'),
             'summary'            : data.get('Summary', ''),
             'time_found'         : data.get('Time Critical Findings Found', ''),
-            'time_reported'      : data.get('Time Critical Findings Reported', '')
+            'time_reported'      : data.get('Time Critical Findings Reported', ''),
+            'scan_type'          : data.get('Scan Type', ''),
+            'exam_date_ai'       : data.get('Exam Date', ''),
+            'radiologist_name'   : data.get('Radiologist Name', '')
         }
     except Exception as e:
         print("Error extracting findings:", e)
@@ -75,6 +81,9 @@ def extract_findings(radiology_text, clinical_text):
             'risk_level'         : 'None',
             'summary'            : '',
             'time_found'         : '',
-            'time_reported'      : ''
+            'time_reported'      : '',
+            'scan_type'          : '',
+            'exam_date_ai'       : '',
+            'radiologist_name'   : ''
         }
 

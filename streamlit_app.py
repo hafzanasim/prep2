@@ -257,18 +257,23 @@ df_display = load_data_sql()
 
 # ------------- Filters ------------------
 st.markdown("### Filters")
-col1, col2, col3, col4, col5, col6_filter = st.columns(6) # Changed from 5 to 6
+# Keep 6 columns for filters, no change here based on new table display fields.
+col1, col2, col3, col4, col5, col6_filter = st.columns(6) 
 
 with col1:
     empi_ids = ["All"] + sorted(df_display['empi_id'].unique())
     selected_empi = st.selectbox("Select EMPI ID", empi_ids)
 
 with col2:
-    df_display['timestamp'] = pd.to_datetime(df_display['timestamp'], errors='coerce')
-    valid_timestamps = df_display['timestamp'].dropna()
+    # Date range filter now uses 'ai_report_timestamp'
+    # load_data_sql should already convert this to datetime, but an explicit check is good.
+    if 'ai_report_timestamp' not in df_display.columns:
+        df_display['ai_report_timestamp'] = pd.NaT 
+    df_display['ai_report_timestamp'] = pd.to_datetime(df_display['ai_report_timestamp'], errors='coerce')
+    valid_timestamps = df_display['ai_report_timestamp'].dropna()
 
     if valid_timestamps.empty:
-        st.warning("⚠️ No valid timestamps available. Skipping date filter.")
+        st.warning("⚠️ No valid AI Report timestamps available. Skipping date filter.")
         date_range = (None, None)
     else:
         try:
@@ -309,12 +314,14 @@ if 'critical_finding_response_time_minutes' in filtered_df.columns:
 if selected_empi != "All":
     filtered_df = filtered_df[filtered_df['empi_id'] == selected_empi]
 
-if len(date_range) == 2:
+if len(date_range) == 2 and date_range[0] is not None and date_range[1] is not None:
     start_date, end_date = date_range
-    filtered_df = filtered_df[
-        (filtered_df['timestamp'].dt.date >= start_date) &
-        (filtered_df['timestamp'].dt.date <= end_date)
-    ]
+    # Ensure the column exists and is not all NaT before trying .dt accessor
+    if 'ai_report_timestamp' in filtered_df.columns and not filtered_df['ai_report_timestamp'].isna().all():
+        filtered_df = filtered_df[
+            (filtered_df['ai_report_timestamp'].dt.date >= start_date) &
+            (filtered_df['ai_report_timestamp'].dt.date <= end_date)
+        ]
 
 if selected_critical != "All":
     filtered_df = filtered_df[filtered_df['critical_findings'] == selected_critical]
@@ -403,16 +410,16 @@ if not page_data.empty:
     <style>
     .table-header {
         display: grid;
-        /* Adjusted for 8 columns: EMPI, Timestamp, Critical, Incidental, Score, Risk, Response Time, Action */
-        grid-template-columns: 1.8fr 1.8fr 1fr 1fr 1fr 1fr 1.2fr 0.8fr;
+        /* Adjusted for 10 columns: EMPI, AI Timestamp, Scan Type, Radiologist, Critical, Incidental, Score, Risk, Resp. Time, Action */
+        grid-template-columns: 1.4fr 1.5fr 1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr 0.7fr;
         font-weight: bold;
         margin-top: 1rem;
         margin-bottom: 0.5rem;
     }
     .table-row {
         display: grid;
-        /* Adjusted for 8 columns */
-        grid-template-columns: 1.8fr 1.8fr 1fr 1fr 1fr 1fr 1.2fr 0.8fr;
+        /* Adjusted for 10 columns */
+        grid-template-columns: 1.4fr 1.5fr 1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr 0.7fr;
         align-items: center;
         padding: 0.3rem 0;
         border-bottom: 1px solid #eee;
@@ -423,7 +430,9 @@ if not page_data.empty:
     st.markdown("""
     <div class="table-header">
         <div>EMPI ID</div>
-        <div>Timestamp</div>
+        <div>AI Report Date</div>
+        <div>Scan Type</div>
+        <div>Radiologist</div>
         <div>Critical</div>
         <div>Incidental</div>
         <div>Score</div>
@@ -435,27 +444,40 @@ if not page_data.empty:
 
     for i, row in page_data.reset_index(drop=True).iterrows():
         with st.container():
-            cols = st.columns([1.8, 1.8, 1, 1, 1, 1, 1.2, 0.8]) # Adjusted for 8 columns
+            cols = st.columns([1.4, 1.5, 1, 1, 0.8, 0.8, 0.8, 0.8, 1, 0.7]) # Adjusted for 10 columns
             cols[0].write(row["empi_id"])
-            cols[1].write(str(row["timestamp"]))
-            cols[2].markdown("🔴 Yes" if row["critical_findings"] == "Yes" else "❌ No")
-            cols[3].markdown("🟠 Yes" if row["incidental_findings"] == "Yes" else "❌ No")
-            cols[4].write(row["mammogram_score"])
-            cols[5].markdown(risk_badge(row["risk_level"]), unsafe_allow_html=True)
             
-            # Display critical_finding_response_time_minutes
+            # Display AI Report Timestamp
+            ai_ts_display = "N/A"
+            if pd.notna(row.get("ai_report_timestamp")):
+                try:
+                    # Assuming ai_report_timestamp is already a datetime object
+                    ai_ts_display = row["ai_report_timestamp"].strftime('%Y-%m-%d %H:%M:%S')
+                except AttributeError: # If it's not a datetime object for some reason
+                    ai_ts_display = str(row["ai_report_timestamp"])
+            cols[1].write(ai_ts_display)
+
+            cols[2].write(str(row.get("scan_type", "N/A")) if pd.notna(row.get("scan_type")) and row.get("scan_type") else "N/A")
+            cols[3].write(str(row.get("radiologist_name", "N/A")) if pd.notna(row.get("radiologist_name")) and row.get("radiologist_name") else "N/A")
+            
+            cols[4].markdown("🔴 Yes" if row["critical_findings"] == "Yes" else "❌ No")
+            cols[5].markdown("🟠 Yes" if row["incidental_findings"] == "Yes" else "❌ No")
+            cols[6].write(row["mammogram_score"])
+            cols[7].markdown(risk_badge(row["risk_level"]), unsafe_allow_html=True)
+            
             response_time_val = row.get("critical_finding_response_time_minutes")
             if pd.isna(response_time_val):
-                cols[6].write("N/A")
+                cols[8].write("N/A")
             elif response_time_val == 0:
-                cols[6].write("0")
+                cols[8].write("0")
             else:
-                cols[6].write(str(int(response_time_val))) # Ensure integer display
+                cols[8].write(str(int(response_time_val)))
 
-            with cols[7]: # Action button is now in the 8th column
+            with cols[9]: # Action button is now in the 10th column
                 if st.button("View", key=f"view_{i}"):
                     st.session_state.selected_patient = row["empi_id"]
-                    st.session_state.selected_timestamp = row["timestamp"]
+                    # IMPORTANT: Pass the ORIGINAL timestamp for detail page fetching logic
+                    st.session_state.selected_timestamp = row["timestamp"] 
                     st.switch_page("pages/patient_detail.py")
 else:
     st.warning("No data available.")
