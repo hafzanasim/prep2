@@ -430,7 +430,7 @@ if not page_data.empty:
     st.markdown("""
     <div class="table-header">
         <div>EMPI ID</div>
-        <div>AI Report Date</div>
+        <div>Exam Date</div>
         <div>Scan Type</div>
         <div>Radiologist</div>
         <div>Critical</div>
@@ -447,15 +447,17 @@ if not page_data.empty:
             cols = st.columns([1.4, 1.5, 1, 1, 0.8, 0.8, 0.8, 0.8, 1, 0.7]) # Adjusted for 10 columns
             cols[0].write(row["empi_id"])
             
-            # Display AI Report Timestamp
-            ai_ts_display = "N/A"
-            if pd.notna(row.get("ai_report_timestamp")):
+            # Display AI Report Timestamp as Exam Date in MM-DD-YYYY format
+            dt_val = row.get("ai_report_timestamp") # Use .get for safety
+            if pd.isna(dt_val):
+                display_date = "N/A"
+            else:
                 try:
-                    # Assuming ai_report_timestamp is already a datetime object
-                    ai_ts_display = row["ai_report_timestamp"].strftime('%Y-%m-%d %H:%M:%S')
-                except AttributeError: # If it's not a datetime object for some reason
-                    ai_ts_display = str(row["ai_report_timestamp"])
-            cols[1].write(ai_ts_display)
+                    # It should already be a datetime object from load_data_sql
+                    display_date = dt_val.strftime('%m-%d-%Y')
+                except AttributeError: 
+                    display_date = "Invalid Date" # Fallback
+            cols[1].write(display_date)
 
             cols[2].write(str(row.get("scan_type", "N/A")) if pd.notna(row.get("scan_type")) and row.get("scan_type") else "N/A")
             cols[3].write(str(row.get("radiologist_name", "N/A")) if pd.notna(row.get("radiologist_name")) and row.get("radiologist_name") else "N/A")

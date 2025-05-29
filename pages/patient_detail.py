@@ -155,13 +155,22 @@ clin_df = debug_fetch_clin_rows(patient_id, selected_timestamp) # selected_times
 radiology_text = rad_df.iloc[0]['RADIO_REPORT_TEXT'] if not rad_df.empty else "No radiology reports found."
 
 # ——— Header Banner ———
-# Use AI Report Timestamp for Exam Date display
-ai_exam_date_val = record.get('ai_report_timestamp')
-exam_date_display = "N/A"
-if pd.notna(ai_exam_date_val) and hasattr(ai_exam_date_val, 'strftime'):
-    exam_date_display = ai_exam_date_val.strftime('%Y-%m-%d')
-elif pd.notna(selected_timestamp) and hasattr(selected_timestamp, 'strftime'): # Fallback for display if AI date missing
-    exam_date_display = selected_timestamp.strftime('%Y-%m-%d')
+# Use AI Report Timestamp for Exam Date display, formatted as MM-DD-YYYY
+ai_ts_val = record.get('ai_report_timestamp')
+if pd.isna(ai_ts_val):
+    display_exam_date = "N/A"
+else:
+    try:
+        display_exam_date = ai_ts_val.strftime('%m-%d-%Y')
+    except AttributeError: # Should be a datetime object
+        display_exam_date = "Invalid Date"
+# Fallback for display_exam_date if AI date is missing/invalid, using original selected_timestamp
+if display_exam_date == "N/A" or display_exam_date == "Invalid Date":
+    if pd.notna(selected_timestamp) and hasattr(selected_timestamp, 'strftime'):
+        try:
+            display_exam_date = selected_timestamp.strftime('%m-%d-%Y') # Format fallback consistently
+        except AttributeError:
+            pass # Keep "N/A" or "Invalid Date" if selected_timestamp also problematic
 
 
 # Prepare response time display
@@ -181,7 +190,7 @@ st.markdown(f"""
 <div class="banner">
     <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
         <div style="font-size: 1.5rem; font-weight: bold;">🏥 Patient ID: {patient_id}</div>
-        <div style="font-size: 1.2rem;">📅 AI Exam Date: {exam_date_display}</div>
+        <div style="font-size: 1.2rem;">📅 Exam Date: {display_exam_date}</div>
     </div>
     <div style="margin-top: 0.5rem; font-size: 0.95rem;">
         📄 <b>Scan Type:</b> {scan_type_display} &nbsp;&nbsp;
@@ -203,18 +212,25 @@ with tabs[0]:
     with col1:
         st.subheader("Original Radiology Report")
         
-        # Display AI Processed Report Timestamp as primary for this tab
-        ai_report_ts_val = record.get('ai_report_timestamp')
-        report_ts_display = "N/A"
-        if pd.notna(ai_report_ts_val) and hasattr(ai_report_ts_val, 'strftime'):
-            report_ts_display = ai_report_ts_val.strftime('%Y-%m-%d %H:%M:%S')
-        st.caption(f"AI Processed Report Timestamp: {report_ts_display}")
+        # Display AI Processed Report Timestamp (Exam Date) as primary for this tab, formatted as MM-DD-YYYY
+        ai_report_ts_val_tab = record.get('ai_report_timestamp')
+        report_exam_date_display = "N/A"
+        if pd.notna(ai_report_ts_val_tab) and hasattr(ai_report_ts_val_tab, 'strftime'):
+            try:
+                report_exam_date_display = ai_report_ts_val_tab.strftime('%m-%d-%Y')
+            except AttributeError:
+                 report_exam_date_display = "Invalid Date"
+        st.caption(f"Exam Date: {report_exam_date_display}")
 
         # Optionally, display original Snowflake timestamp if different and available
         if not rad_df.empty:
-            original_ts = rad_df.iloc[0]['TIMESTAMP_naive'].strftime('%Y-%m-%d %H:%M:%S')
-            if original_ts != report_ts_display : # Only show if different or AI one is N/A
-                 st.caption(f"Original Snowflake Report Timestamp: {original_ts}")
+            original_ts_val = rad_df.iloc[0]['TIMESTAMP_naive']
+            if pd.notna(original_ts_val) and hasattr(original_ts_val, 'strftime'):
+                original_ts_display_full = original_ts_val.strftime('%Y-%m-%d %H:%M:%S')
+                original_ts_display_date = original_ts_val.strftime('%m-%d-%Y')
+                # Show if AI date is N/A, invalid, or if original date differs from AI date
+                if report_exam_date_display in ["N/A", "Invalid Date"] or original_ts_display_date != report_exam_date_display:
+                    st.caption(f"Original Report Timestamp: {original_ts_display_full}")
         
         st.markdown(
             f"<div class='report-text'>{radiology_text}</div>", unsafe_allow_html=True)
