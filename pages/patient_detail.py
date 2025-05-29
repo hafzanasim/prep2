@@ -156,6 +156,13 @@ radiology_text = rad_df.iloc[0]['RADIO_REPORT_TEXT'] if not rad_df.empty else "N
 
 # ——— Header Banner ———
 exam_date = selected_timestamp.strftime('%Y-%m-%d')
+
+# Prepare response time display
+response_time_val = record.get('critical_finding_response_time_minutes')
+response_time_display = "N/A"
+if pd.notna(response_time_val):
+    response_time_display = f"{int(response_time_val)} mins"
+
 st.markdown(f"""
 <div class="banner">
     <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
@@ -165,7 +172,8 @@ st.markdown(f"""
     <div style="margin-top: 0.5rem;">
         🔴 <b>Critical:</b> {record['critical_findings']} &nbsp;&nbsp;
         🟠 <b>Incidental:</b> {record['incidental_findings']} &nbsp;&nbsp;
-        🎯 <b>BI–RADS Score:</b> {record['mammogram_score']}
+        🎯 <b>BI–RADS Score:</b> {record['mammogram_score']} &nbsp;&nbsp;
+        ⏱️ <b>Response Time:</b> {response_time_display}
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -228,7 +236,8 @@ with tabs[1]:
             "mammogram_score": record["mammogram_score"],
             "follow_up": record["follow_up"],
             "risk_level": record["risk_level"],
-            "summary": record.get("summary", "N/A")
+            "summary": record.get("summary", "N/A"),
+            "critical_finding_response_time_minutes": response_time_display # Use the formatted one
         }
 
         st.json(export_dict, expanded=False)

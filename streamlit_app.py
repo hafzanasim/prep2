@@ -114,8 +114,13 @@ configure_gemini()
 # Sidebar dev tools
 if st.sidebar.button("Reset DB"):
     reset_db()
-    st.sidebar.success("Database reset. Refresh to reprocess reports.")
-    st.stop()
+    if 'processed' in st.session_state:
+        del st.session_state.processed
+    # Also clear any cached data that might depend on the old DB state
+    load_radiology_data.clear()
+    load_clinical_data.clear()
+    st.sidebar.success("Database reset. Reprocessing will occur on next interaction/refresh.")
+    st.rerun() # Use rerun to ensure the app starts fresh and hits the 'processed' check
 
 def get_radio_for_retry(empi_id, timestamp):
     return get_snowflake_data(
@@ -252,7 +257,7 @@ df_display = load_data_sql()
 
 # ------------- Filters ------------------
 st.markdown("### Filters")
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6_filter = st.columns(6) # Changed from 5 to 6
 
 with col1:
     empi_ids = ["All"] + sorted(df_display['empi_id'].unique())
@@ -289,10 +294,17 @@ with col4:
 with col5:
     selected_risk = st.selectbox("Risk Level", ["All", "Low", "Medium", "High"])
 
+with col6_filter: # New filter for response time
+    response_time_options = ["All", "0-30 mins", "31-60 mins", ">60 mins", "N/A"]
+    selected_response_time = st.selectbox("Response Time (min)", response_time_options)
+
 patient_search = st.text_input("Search Patient ID")
 
 # ------------- Filtering Logic ---------------
 filtered_df = df_display.copy()
+# Ensure 'critical_finding_response_time_minutes' is numeric, coercing errors to NaN
+if 'critical_finding_response_time_minutes' in filtered_df.columns:
+    filtered_df['critical_finding_response_time_minutes'] = pd.to_numeric(filtered_df['critical_finding_response_time_minutes'], errors='coerce')
 
 if selected_empi != "All":
     filtered_df = filtered_df[filtered_df['empi_id'] == selected_empi]
@@ -312,6 +324,16 @@ if selected_followup != "All":
 
 if selected_risk != "All":
     filtered_df = filtered_df[filtered_df['risk_level'] == selected_risk]
+
+if selected_response_time != "All" and 'critical_finding_response_time_minutes' in filtered_df.columns:
+    if selected_response_time == "N/A":
+        filtered_df = filtered_df[filtered_df['critical_finding_response_time_minutes'].isna()]
+    elif selected_response_time == "0-30 mins":
+        filtered_df = filtered_df[(filtered_df['critical_finding_response_time_minutes'] >= 0) & (filtered_df['critical_finding_response_time_minutes'] <= 30)]
+    elif selected_response_time == "31-60 mins":
+        filtered_df = filtered_df[(filtered_df['critical_finding_response_time_minutes'] > 30) & (filtered_df['critical_finding_response_time_minutes'] <= 60)]
+    elif selected_response_time == ">60 mins":
+        filtered_df = filtered_df[filtered_df['critical_finding_response_time_minutes'] > 60]
 
 if patient_search:
     filtered_df = filtered_df[filtered_df['empi_id'].str.contains(patient_search, case=False)]
@@ -381,14 +403,16 @@ if not page_data.empty:
     <style>
     .table-header {
         display: grid;
-        grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1.5fr 1.5fr 1fr;
+        /* Adjusted for 8 columns: EMPI, Timestamp, Critical, Incidental, Score, Risk, Response Time, Action */
+        grid-template-columns: 1.8fr 1.8fr 1fr 1fr 1fr 1fr 1.2fr 0.8fr;
         font-weight: bold;
         margin-top: 1rem;
         margin-bottom: 0.5rem;
     }
     .table-row {
         display: grid;
-        grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1.5fr 1.5fr 1fr;
+        /* Adjusted for 8 columns */
+        grid-template-columns: 1.8fr 1.8fr 1fr 1fr 1fr 1fr 1.2fr 0.8fr;
         align-items: center;
         padding: 0.3rem 0;
         border-bottom: 1px solid #eee;
@@ -404,20 +428,31 @@ if not page_data.empty:
         <div>Incidental</div>
         <div>Score</div>
         <div>Risk Level</div>
+        <div>Response Time (min)</div>
         <div>Action</div>
     </div>
     """, unsafe_allow_html=True)
 
     for i, row in page_data.reset_index(drop=True).iterrows():
         with st.container():
-            cols = st.columns([2, 2, 1.5, 1.5, 1.5, 1.5, 1])
+            cols = st.columns([1.8, 1.8, 1, 1, 1, 1, 1.2, 0.8]) # Adjusted for 8 columns
             cols[0].write(row["empi_id"])
             cols[1].write(str(row["timestamp"]))
             cols[2].markdown("🔴 Yes" if row["critical_findings"] == "Yes" else "❌ No")
             cols[3].markdown("🟠 Yes" if row["incidental_findings"] == "Yes" else "❌ No")
             cols[4].write(row["mammogram_score"])
             cols[5].markdown(risk_badge(row["risk_level"]), unsafe_allow_html=True)
-            with cols[6]:
+            
+            # Display critical_finding_response_time_minutes
+            response_time_val = row.get("critical_finding_response_time_minutes")
+            if pd.isna(response_time_val):
+                cols[6].write("N/A")
+            elif response_time_val == 0:
+                cols[6].write("0")
+            else:
+                cols[6].write(str(int(response_time_val))) # Ensure integer display
+
+            with cols[7]: # Action button is now in the 8th column
                 if st.button("View", key=f"view_{i}"):
                     st.session_state.selected_patient = row["empi_id"]
                     st.session_state.selected_timestamp = row["timestamp"]

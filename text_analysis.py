@@ -37,9 +37,11 @@ def extract_findings(radiology_text, clinical_text):
     * Follow Up Required: Yes/No
     * Assign a patient risk level (based on findings and history): Low, Medium, or High
     * Provide a brief 2-3 sentence summary of the patient’s medical history based on patient’s clinical report.
+    * Time Critical Findings Found: [Time in HH:MM AM/PM or HH:MM:SS format]
+    * Time Critical Findings Reported: [Time in HH:MM AM/PM or HH:MM:SS format]
 
     Return ONLY the following keys in a JSON object:
-    "Critical Findings", "Incidental Findings", "Mammogram Score", "Follow Up Required", "Risk Level", and "Summary".
+    "Critical Findings", "Incidental Findings", "Mammogram Score", "Follow Up Required", "Risk Level", "Summary", "Time Critical Findings Found", and "Time Critical Findings Reported".
 
     Do not include commentary or code block formatting.
     """
@@ -59,7 +61,9 @@ def extract_findings(radiology_text, clinical_text):
             'mammogram_score'    : data.get('Mammogram Score', 'Not Available'),
             'follow_up'          : data.get('Follow Up Required', 'No'),
             'risk_level'         : data.get('Risk Level', 'Low'),
-            'summary'            : data.get('Summary', '')
+            'summary'            : data.get('Summary', ''),
+            'time_found'         : data.get('Time Critical Findings Found', ''),
+            'time_reported'      : data.get('Time Critical Findings Reported', '')
         }
     except Exception as e:
         print("Error extracting findings:", e)
@@ -69,6 +73,8 @@ def extract_findings(radiology_text, clinical_text):
             'mammogram_score'    : 'None',
             'follow_up'          : 'None',
             'risk_level'         : 'None',
-            'summary'            : ''
+            'summary'            : '',
+            'time_found'         : '',
+            'time_reported'      : ''
         }
 
